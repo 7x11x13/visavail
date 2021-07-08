@@ -476,7 +476,7 @@
 							startDate = d.startDate
 
 						if (i !== 0 && i < dataLength) {
-							if (d.state === tmpData[tmpData.length - 1].state) {
+							if (d.state === tmpData[tmpData.length - 1].state && d.tooltip_html === tmpData[tmpData.length - 1].tooltip_html) {
 								// the value has not changed since the last date
 								if (options.defined_blocks) {
 									if (tmpData[tmpData.length - 1].endDate.getTime() === d.startDate.getTime()) {
@@ -1150,7 +1150,7 @@
 								}
 							}
 
-							if(options.tooltip.description){
+							if (options.tooltip.description){
 								var series = dataset.filter(
 									function (series) {
 										return series.disp_data.indexOf(d) >= 0;
@@ -1163,46 +1163,61 @@
 							
 							if (options.is_date_only_format && !options.tooltip.date_plus_time) {
 								if (d.endDate > d3.timeSecond.offset(d.startDate, 86400) && !options.tooltip.only_first_date) {
-									if(options.date_is_descending)
-										return output + moment(d.endDate).format('l') +
+									if (options.date_is_descending) {
+										output += moment(d.endDate).format('l') +
 										' - ' + moment(d.startDate).format('l');
-									return output + moment(d.startDate).format('l') +
+									} else {
+										output += moment(d.startDate).format('l') +
 										' - ' + moment(d.endDate).format('l');
+									}
+								} else if (options.date_is_descending) {
+									output += moment(d.endDate).format('l');
+								} else {
+									output += moment(d.startDate).format('l');
 								}
-								if(options.date_is_descending)
-									return output + moment(d.endDate).format('l');
-								return output + moment(d.startDate).format('l');
 							} else {
-								if(!options.tooltip.only_first_date){
+								if (!options.tooltip.only_first_date){
 									if ((d.endDate > d3.timeSecond.offset(d.startDate, 86400) || options.tooltip.date_plus_time)) {
-										if(options.date_is_descending)
-											return output + moment(d.endDate).format('l') + ' ' +
+										if (options.date_is_descending) {
+											output += moment(d.endDate).format('l') + ' ' +
 												moment(d.endDate).format('LTS') + ' - ' +
 												moment(d.startDate).format('l') + ' ' +
 												moment(d.startDate).format('LTS');
-										return output + moment(d.startDate).format('l') + ' ' +
-											moment(d.startDate).format('LTS') + ' - ' +
-											moment(d.endDate).format('l') + ' ' +
+										} else {
+											output += moment(d.startDate).format('l') + ' ' +
+												moment(d.startDate).format('LTS') + ' - ' +
+												moment(d.endDate).format('l') + ' ' +
+												moment(d.endDate).format('LTS');
+										}
+									} else if(options.date_is_descending) {
+										output += moment(d.endDate).format('LTS') + ' - ' +
+										moment(d.startDate).format('LTS');
+									} else {
+										output += moment(d.startDate).format('LTS') + ' - ' +
 											moment(d.endDate).format('LTS');
 									}
-									if(options.date_is_descending)
-										return output + moment(d.endDate).format('LTS') + ' - ' +
-										moment(d.startDate).format('LTS');
-									return output + moment(d.startDate).format('LTS') + ' - ' +
-										moment(d.endDate).format('LTS');
 								} else {
 									if (d.endDate > d3.timeSecond.offset(d.startDate, 86400) || options.tooltip.date_plus_time) {
-										if(options.date_is_descending)
-											return output + moment(d.endDate).format('l') + ' ' +
+										if(options.date_is_descending) {
+											output += moment(d.endDate).format('l') + ' ' +
 												moment(d.endDate).format('LTS');
-										return output + moment(d.startDate).format('l') + ' ' +
-											moment(d.startDate).format('LTS');
+										} else {
+											output += moment(d.startDate).format('l') + ' ' +
+												moment(d.startDate).format('LTS');
+										}
+									} else if (options.date_is_descending)  {
+										output += moment(d.endDate).format('LTS');
+									} else {
+										output += moment(d.startDate).format('LTS');
 									}
-									if(options.date_is_descending)
-										return output + moment(d.endDate).format('LTS');
-									return output + moment(d.startDate).format('LTS');
 								}								
 							}
+
+							if ("tooltip_html" in d) {
+								output += ' ' + d.tooltip_html + ' ';
+							}
+
+							return output;
 						})
 						.style('left', function () {
 							if(options.width < (pageX + div.property('offsetWidth') + options.tooltip.left_spacing))
