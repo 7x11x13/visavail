@@ -23,7 +23,7 @@
 		var d3 = window.d3 ? window.d3 : typeof require !== 'undefined' ? require("d3") : undefined;
 		var moment = window.moment ? window.moment : typeof require !== 'undefined' ? require("moment") : undefined;
 
-		var t0;
+		var t0, start_event;
 			
 		if(!d3)
 			throw new Error('Require D3.js before visavail script');
@@ -346,9 +346,9 @@
 				for (var i = 0; i < dataset.length; i++) {
 					if(dataset[i].description)
 						options.tooltip.description = true;
-					if (dataset[i].data[0] != null && dataset[i].data[0].length == 3 ){
+					if (dataset[i].data[0] != null && 'endDate' in dataset[i].data[0]){
 						options.defined_blocks = true
-						if(!options.custom_categories && !Number.isInteger(dataset[i].data[0][1])) 
+						if(!options.custom_categories && !Number.isInteger(dataset[i].data[0].state)) 
 							options.custom_categories = true;
 						break;
 					}
@@ -411,33 +411,33 @@
 				var t0 = performance.now()
 				dataset.forEach(function (d) {
 					d.data.forEach(function (d1) {
-						if (!(d1[0] instanceof Date)) {
-							if (parseDateTimeRegEx.test(d1[0])) {
-								// d1[0] is date with time data
-								d1[0] = parseDateTime(d1[0]);
+						if (!(d1.startDate instanceof Date)) {
+							if (parseDateTimeRegEx.test(d1.startDate)) {
+								// d1.startDate is date with time data
+								d1.startDate = parseDateTime(d1.startDate);
 								options.is_date_only_format = false;
 								
-							} else if (parseDateRegEx.test(d1[0])) {
-								// d1[0] is date without time data
-								d1[0] = parseDate(d1[0]);
+							} else if (parseDateRegEx.test(d1.startDate)) {
+								// d1.startDate is date without time data
+								d1.startDate = parseDate(d1.startDate);
 							} else {
 								throw new Error('Date/time format not recognized. Pick between \'YYYY-MM-DD\' or ' +
 									'\'YYYY-MM-DD HH:MM:SS\'.');
 							}
 						}
-						if (!(d1[2] instanceof Date)) {
+						if (!(d1.endDate instanceof Date)) {
 							if (!options.defined_blocks) {
-								d1[2] = d3.timeSecond.offset(d1[0], d.interval_s);
+								d1.endDate = d3.timeSecond.offset(d1.startDate, d.interval_s);
 							} else {
-								if(d1[2]){
-									if (parseDateTimeRegEx.test(d1[2])) {
-										// d1[2] is date with time data
-										d1[2] = parseDateTime(d1[2]);
-									} else if (parseDateRegEx.test(d1[2])) {
-										// d1[2] is date without time data
-										d1[2] = parseDate(d1[2]);
+								if(d1.endDate){
+									if (parseDateTimeRegEx.test(d1.endDate)) {
+										// d1.endDate is date with time data
+										d1.endDate = parseDateTime(d1.endDate);
+									} else if (parseDateRegEx.test(d1.endDate)) {
+										// d1.endDate is date without time data
+										d1.endDate = parseDate(d1.endDate);
 									} else {
-										d1[2] = d1[0];
+										d1.endDate = d1.startDate;
 										if(options.graph.type != "rhombus")
 											console.error('Date/time format not recognized. Pick between \'YYYY-MM-DD\' or ' +
 											'\'YYYY-MM-DD HH:MM:SS\'.');
@@ -458,49 +458,47 @@
 					var tmpData = [];
 					var dataLength = series.data.length;
 					series.data.forEach(function (d, i) {
-						// if(moment(d[2]).isSameOrAfter(endDate))
-						// 	endDate = d[2]
-						// if(moment(d[0]).isSameOrBefore(startDate))
-						// 	startDate = d[0]
+						// if(moment(d.endDate).isSameOrAfter(endDate))
+						// 	endDate = d.endDate
+						// if(moment(d.startDate).isSameOrBefore(startDate))
+						// 	startDate = d.startDate
 						
-						// var temp = [moment(d[0]).valueOf(), moment(d[2]).valueOf()]
+						// var temp = [moment(d.startDate).valueOf(), moment(d.endDate).valueOf()]
 						// var temp2 = [moment(startDate).valueOf(), moment(endDate).valueOf()]
-						// if(temp[1] >= temp2[1])
-						// 	endDate = d[2]
-						// if(temp[0] <= temp2[0])
-						// 	startDate = d[0]
+						// if(temp.state >= temp2.state)
+						// 	endDate = d.endDate
+						// if(temp.startDate <= temp2.startDate)
+						// 	startDate = d.startDate
 
-						if(d[2] >= endDate)
-							endDate = d[2]
-						if(d[0] <= startDate)
-							startDate = d[0]
+						if(d.endDate >= endDate)
+							endDate = d.endDate
+						if(d.startDate <= startDate)
+							startDate = d.startDate
 
 						if (i !== 0 && i < dataLength) {
-							if (d[1] === tmpData[tmpData.length - 1][1]) {
+							if (d.state === tmpData[tmpData.length - 1].state) {
 								// the value has not changed since the last date
 								if (options.defined_blocks) {
-									if (tmpData[tmpData.length - 1][2].getTime() === d[0].getTime()) {
+									if (tmpData[tmpData.length - 1].endDate.getTime() === d.startDate.getTime()) {
 										// end of old and start of new block are the same
-										tmpData[tmpData.length - 1][2] = d[2];
-										tmpData[tmpData.length - 1][3] = d[1];
+										tmpData[tmpData.length - 1].endDate = d.endDate;
 									} else {
 										tmpData.push(d);
 									}
 								} else {
-									tmpData[tmpData.length - 1][2] = d[2];
-									tmpData[tmpData.length - 1][3] = d[1];
+									tmpData[tmpData.length - 1].endDate = d.endDate;
 								}
 							} else {
 								// the value has changed since the last date
 								if (!options.defined_blocks) {
 									// extend last block until new block starts
-									tmpData[tmpData.length - 1][2] = d[0];
+									tmpData[tmpData.length - 1].endDate = d.startDate;
 								}
 								tmpData.push(d);
 							}
 						} else if (i === 0) {
 							if(d.length < 3)
-								d[2] =  d[0];
+								d.endDate =  d.startDate;
 							tmpData.push(d);
 						}
 					});
@@ -555,17 +553,17 @@
 						dataset[seriesI].timedown_ms = 0;
 						if (!options.custom_categories)
 							series.disp_data.forEach(function (disp) {
-								if (disp[1])
-									dataset[seriesI].timeup_ms += disp[2].getTime() - disp[0].getTime();
+								if (disp.state)
+									dataset[seriesI].timeup_ms += disp.endDate.getTime() - disp.startDate.getTime();
 								else
-									dataset[seriesI].timedown_ms += disp[2].getTime() - disp[0].getTime();
+									dataset[seriesI].timedown_ms += disp.endDate.getTime() - disp.startDate.getTime();
 							});
 						else
 							series.disp_data.forEach(function (disp) {
-								if (disp[1] === series.category_percentage)
-									dataset[seriesI].timeup_ms += disp[2].getTime() - disp[0].getTime();
+								if (disp.state === series.category_percentage)
+									dataset[seriesI].timeup_ms += disp.endDate.getTime() - disp.startDate.getTime();
 								else
-									dataset[seriesI].timedown_ms += disp[2].getTime() - disp[0].getTime();
+									dataset[seriesI].timedown_ms += disp.endDate.getTime() - disp.startDate.getTime();
 							});
 					});
 
@@ -1018,10 +1016,10 @@
 								}
 							)[0];
 							if (series && series.categories) {
-								return series.categories[d[1]].class;
+								return series.categories[d.state].class;
 							}
 						} else {
-							if (d[1] === 1) {
+							if (d.state === 1) {
 								// data available
 								return 'rect_has_data';
 							} else {
@@ -1138,12 +1136,12 @@
 										return series.disp_data.indexOf(d) >= 0;
 									}
 								)[0];
-								if(series && series.categories[d[1]].tooltip_html)
-								  	output = series.categories[d[1]].tooltip_html;
+								if(series && series.categories[d.state].tooltip_html)
+								  	output = series.categories[d.state].tooltip_html;
 								else
-									output = '&nbsp;' + d[1] + '&nbsp;';
+									output = '&nbsp;' + d.state + '&nbsp;';
 							} else {
-								if (d[1] === 1) {
+								if (d.state === 1) {
 									// checkmark icon
 									output = '<i class=" '+ options.icon.class_has_data +' tooltip_has_data"></i>';
 								} else {
@@ -1164,45 +1162,45 @@
 							}
 							
 							if (options.is_date_only_format && !options.tooltip.date_plus_time) {
-								if (d[2] > d3.timeSecond.offset(d[0], 86400) && !options.tooltip.only_first_date) {
+								if (d.endDate > d3.timeSecond.offset(d.startDate, 86400) && !options.tooltip.only_first_date) {
 									if(options.date_is_descending)
-										return output + moment(d[2]).format('l') +
-										' - ' + moment(d[0]).format('l');
-									return output + moment(d[0]).format('l') +
-										' - ' + moment(d[2]).format('l');
+										return output + moment(d.endDate).format('l') +
+										' - ' + moment(d.startDate).format('l');
+									return output + moment(d.startDate).format('l') +
+										' - ' + moment(d.endDate).format('l');
 								}
 								if(options.date_is_descending)
-									return output + moment(d[2]).format('l');
-								return output + moment(d[0]).format('l');
+									return output + moment(d.endDate).format('l');
+								return output + moment(d.startDate).format('l');
 							} else {
 								if(!options.tooltip.only_first_date){
-									if ((d[2] > d3.timeSecond.offset(d[0], 86400) || options.tooltip.date_plus_time)) {
+									if ((d.endDate > d3.timeSecond.offset(d.startDate, 86400) || options.tooltip.date_plus_time)) {
 										if(options.date_is_descending)
-											return output + moment(d[2]).format('l') + ' ' +
-												moment(d[2]).format('LTS') + ' - ' +
-												moment(d[0]).format('l') + ' ' +
-												moment(d[0]).format('LTS');
-										return output + moment(d[0]).format('l') + ' ' +
-											moment(d[0]).format('LTS') + ' - ' +
-											moment(d[2]).format('l') + ' ' +
-											moment(d[2]).format('LTS');
+											return output + moment(d.endDate).format('l') + ' ' +
+												moment(d.endDate).format('LTS') + ' - ' +
+												moment(d.startDate).format('l') + ' ' +
+												moment(d.startDate).format('LTS');
+										return output + moment(d.startDate).format('l') + ' ' +
+											moment(d.startDate).format('LTS') + ' - ' +
+											moment(d.endDate).format('l') + ' ' +
+											moment(d.endDate).format('LTS');
 									}
 									if(options.date_is_descending)
-										return output + moment(d[2]).format('LTS') + ' - ' +
-										moment(d[0]).format('LTS');
-									return output + moment(d[0]).format('LTS') + ' - ' +
-										moment(d[2]).format('LTS');
+										return output + moment(d.endDate).format('LTS') + ' - ' +
+										moment(d.startDate).format('LTS');
+									return output + moment(d.startDate).format('LTS') + ' - ' +
+										moment(d.endDate).format('LTS');
 								} else {
-									if (d[2] > d3.timeSecond.offset(d[0], 86400) || options.tooltip.date_plus_time) {
+									if (d.endDate > d3.timeSecond.offset(d.startDate, 86400) || options.tooltip.date_plus_time) {
 										if(options.date_is_descending)
-											return output + moment(d[2]).format('l') + ' ' +
-												moment(d[2]).format('LTS');
-										return output + moment(d[0]).format('l') + ' ' +
-											moment(d[0]).format('LTS');
+											return output + moment(d.endDate).format('l') + ' ' +
+												moment(d.endDate).format('LTS');
+										return output + moment(d.startDate).format('l') + ' ' +
+											moment(d.startDate).format('LTS');
 									}
 									if(options.date_is_descending)
-										return output + moment(d[2]).format('LTS');
-									return output + moment(d[0]).format('LTS');
+										return output + moment(d.endDate).format('LTS');
+									return output + moment(d.startDate).format('LTS');
 								}								
 							}
 						})
@@ -1482,11 +1480,11 @@
 										}
 									)[0];
 									if (series && series.categories) {
-										//d3.select(this).attr('fill', series.categories[d[1]].color);
-										return series.categories[d[1]].class;
+										//d3.select(this).attr('fill', series.categories[d.state].color);
+										return series.categories[d.state].class;
 									}
 								} else {
-									if (d[1] === 1) {
+									if (d.state === 1) {
 										// data available
 										return 'rect_has_data';
 									} else {
@@ -1540,25 +1538,25 @@
 
 				function xForPoint(d, graph_width, xScale, ratio){
 					
-					var x_scale = xScale(d[0]) - ratio;
+					var x_scale = xScale(d.startDate) - ratio;
 					if(options.date_is_descending)
-						x_scale = xScale(d[2]) - ratio;
+						x_scale = xScale(d.endDate) - ratio;
 					if(isNaN(x_scale) || x_scale <= 0 || x_scale + ratio > width)
 						return 0 - ratio/2
 					if(options.graph.type == "rhombus" || options.graph.type == "circle")
-						return xScale(d[0]) - graph_width/2 
+						return xScale(d.startDate) - graph_width/2 
 					
 					return x_scale;
 				}
 				
 				function widthForPoint(d, graph_width, xScale, ratio){
 					
-					var x_scale_d0 = xScale(d[0]) - ratio;
-					var x_scale_d2 = xScale(d[2]) + ratio;
+					var x_scale_d0 = xScale(d.startDate) - ratio;
+					var x_scale_d2 = xScale(d.endDate) + ratio;
 					
 					if(options.date_is_descending) {
-						x_scale_d0 = xScale(d[2]) - ratio;
-						x_scale_d2 =  xScale(d[0]) + ratio;
+						x_scale_d0 = xScale(d.endDate) - ratio;
+						x_scale_d2 =  xScale(d.startDate) + ratio;
 					}
 					
 					if(isNaN(x_scale_d0) || isNaN(x_scale_d2) || (!options.date_is_descending && (x_scale_d2 - x_scale_d0) < 0) || x_scale_d2 <= 0 && x_scale_d0 <= 0 ) 
@@ -1587,7 +1585,7 @@
 				}
 
 				function transformForTypeOfGraph(d, xScale, graph_height, line_spacing, ratio){
-					var x_scale = xScale(d[0]);
+					var x_scale = xScale(d.startDate);
 					if((options.graph.type == "rhombus" || options.graph.type == "circle" )&& x_scale > 0 ){
 						return  'rotate(45 '+ (x_scale) + "  " + (graph_height/2 + line_spacing - ratio)+")"
 					} else if((options.graph.type == "rhombus" || options.graph.type == "circle" ) && x_scale <= 0 ){
