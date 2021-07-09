@@ -342,6 +342,34 @@
 				var noOfDatasets = endSet - startSet;
 				var height = options.graph.height * noOfDatasets + options.line_spacing * noOfDatasets - 1;
 
+				// convert old-style array data to new dict data
+				let convert = false;
+				for (let i = 0; i < dataset.length; i++) {
+					for (let j = 0; j < dataset[i].data.length; j++) {
+						if (Array.isArray(dataset[i].data[j])) {
+							if (!convert) {
+								console.warn("Deprecation warning: data is not formatted as an object");
+								convert = true;
+							}
+							if (dataset[i].data[j].length < 2) {
+								throw new Error("Data-point array must contain at least 2 values");
+							}
+							if (dataset[i].data[j].length === 2) {
+								dataset[i].data[j] = {
+									startDate: dataset[i].data[j][0],
+									state: dataset[i].data[j][1]
+								}
+							} else {
+								dataset[i].data[j] = {
+									startDate: dataset[i].data[j][0],
+									state: dataset[i].data[j][1],
+									endDate: dataset[i].data[j][2],
+								}
+							}
+						}
+					}
+				}
+
 				// check how data is arranged
 				for (var i = 0; i < dataset.length; i++) {
 					if(dataset[i].description)
