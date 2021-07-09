@@ -108,6 +108,14 @@ div.y-tooltip.bottom::after {
     fill: #c9302c;
 }
 
+.visavail .rect_missing_data {
+    fill: #000000;
+}
+
+.visavail .rect_missing_data:hover {
+    fill: #444444;
+}
+
 
 .visavail .x_tick_emph {
     font-weight: bold;

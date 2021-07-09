@@ -180,6 +180,10 @@
 				enabled: false,
 				onresize: function onresize(){},
 			},
+			fill_gaps: {
+				enabled: false,
+				category: "0"
+			},
 			
 			//copy the correct format from https://github.com/d3/d3-time-format/tree/master/locale
 			// locale: {
@@ -342,7 +346,7 @@
 				var noOfDatasets = endSet - startSet;
 				var height = options.graph.height * noOfDatasets + options.line_spacing * noOfDatasets - 1;
 
-				// convert old-style array data to new dict data
+				// convert old-style array data to new object data
 				let convert = false;
 				for (let i = 0; i < dataset.length; i++) {
 					for (let j = 0; j < dataset[i].data.length; j++) {
@@ -370,6 +374,9 @@
 					}
 				}
 
+				if (options.fill_gaps.enabled && options.fill_gaps.category != 0 && options.fill_gaps.category != 1) {
+					options.custom_categories = true;
+				}
 				// check how data is arranged
 				for (var i = 0; i < dataset.length; i++) {
 					if(dataset[i].description)
@@ -514,13 +521,40 @@
 										tmpData.push(d);
 									}
 								} else {
-									tmpData[tmpData.length - 1].endDate = d.endDate;
+									if (!options.fill_gaps.enabled) {
+										tmpData[tmpData.length - 1].endDate = d.endDate;
+									} else {
+										if (tmpData[tmpData.length - 1].endDate.getTime() >= d.startDate.getTime()) {
+											tmpData[tmpData.length - 1].endDate = d.endDate;
+										} else {
+											// fill in gap in data
+											tmpData.push({
+												startDate: tmpData[tmpData.length - 1].endDate,
+												endDate: d.startDate,
+												state: options.fill_gaps.category
+											});
+											tmpData.push(d);
+										}
+									}
 								}
 							} else {
 								// the value has changed since the last date
 								if (!options.defined_blocks) {
-									// extend last block until new block starts
-									tmpData[tmpData.length - 1].endDate = d.startDate;
+									if (!options.fill_gaps.enabled) {
+										// extend last block until new block starts
+										tmpData[tmpData.length - 1].endDate = d.startDate;
+									} else {
+										if (tmpData[tmpData.length - 1].endDate.getTime() < d.startDate.getTime()) {
+											// fill in gap in data
+											tmpData.push({
+												startDate: tmpData[tmpData.length - 1].endDate,
+												endDate: d.startDate,
+												state: options.fill_gaps.category
+											});
+										} else {
+											tmpData[tmpData.length - 1].endDate = d.startDate;
+										}
+									}
 								}
 								tmpData.push(d);
 							}
