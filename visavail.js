@@ -125,11 +125,13 @@
 			legend: {
 				enabled: true,
 				line_space: 12,
+				rect_width: 15,
 				offset: 5,
 				// legend x position offset from right
 				x_right_offset: 150,
 				has_no_data_text: 'No Data available',
-				has_data_text: 'Data available'
+				has_data_text: 'Data available',
+				categories: []
 			},
 			// title of chart is drawn or not (default: true)
 			title: {
@@ -174,7 +176,11 @@
 				type: "bar" ,
 				width: 18,
 				height:18,
-				hover_zoom: 5
+				hover_zoom: 5,
+				margin: {
+					top: 0,
+					left: 0,
+				},
 			},
 			responsive: {
 				enabled: false,
@@ -239,7 +245,7 @@
 
 			Object.keys(custom_options).forEach(function (key) {
 				if(key in default_option){
-					if(typeof(default_option[key]) === 'object'){
+					if(typeof(default_option[key]) === 'object' && !Array.isArray(default_option[key])){
 						//console.log("KEY => ", key, ", DEF_KEY => ", default_option[key],", CUST_KEY => ", custom_options[key])
 						loadConfig(default_option[key], custom_options[key])
 					} else {
@@ -251,6 +257,19 @@
 				}
 			});
 		}
+
+		// backwards compatibility
+		options.legend.categories.push
+		(
+			{
+				class: "rect_has_no_data",
+				text: options.legend.has_no_data_text
+			},
+			{
+				class: "rect_has_data",
+				text: options.legend.has_data_text
+			}
+		)
 
 		loadConfig(options, custom_options)
 		moment.locale(options.moment_locale);
@@ -344,7 +363,7 @@
 				selection.attr('data-max-pages', maxPages);
 
 				var noOfDatasets = endSet - startSet;
-				var height = options.graph.height * noOfDatasets + options.line_spacing * noOfDatasets - 1;
+				var height = options.graph.height * noOfDatasets + options.line_spacing * noOfDatasets - 1 + options.graph.margin.top;
 
 				// convert old-style array data to new object data
 				let convert = false;
@@ -664,18 +683,22 @@
 
 				// create basic element groups
 
-				svg.append('g').attr('id', 'g_axis');
-				svg.append('g')
-				.attr('id', 'g_data')
-				.append('rect')
-				.attr('id', 'zoom')
-				.attr('width', width)
-				.attr('height', height)
-				.attr('fill-opacity', 0)
-				.attr('x', 0)
-				.attr('y', 0)
-				svg.append('g').attr('id', 'g_axis_text');
 				svg.append('g').attr('id', 'g_title');
+				const graph_svg = svg.append('g')
+					.attr('id', 'g_graph')
+					.attr('transform', 'translate(' + options.graph.margin.left + ',' + options.graph.margin.top + ')');
+				graph_svg.append('g').attr('id', 'g_axis');
+				graph_svg.append('g')
+					.attr('id', 'g_data')
+					.append('rect')
+					.attr('id', 'zoom')
+					.attr('width', width)
+					.attr('height', height)
+					.attr('fill-opacity', 0)
+					.attr('x', 0)
+					.attr('y', 0)
+				graph_svg.append('g').attr('id', 'g_axis_text');
+				graph_svg.append('g').attr('id', 'g_title');
 
 				options.zoomed = d3.zoom()
 					.scaleExtent([1,Infinity])
@@ -1405,41 +1428,27 @@
 						.attr('class', 'subheading');
 				}
 				// create legend
-				if (!options.custom_categories && options.legend.enabled) {
+				if (options.legend.enabled) {
 					var legend = svg.select('#g_title')
-						.append('g')
-						.attr('id', 'g_legend')
-						.attr('transform', 'translate(0,-12)');
-
-					legend.append('rect')
+							.append('g')
+							.attr('id', 'g_legend')
+							.attr('transform', 'translate(0,-12)');
+					for (let i = 0; i < options.legend.categories.length; ++i) {
+						const category = options.legend.categories[i];
+						legend.append('rect')
 						.attr('x', width + options.margin.right - options.legend.x_right_offset)
-						.attr('y', options.padding.top)
-						.attr('height', 15)
-						.attr('width', 15)
-						.attr('class', 'rect_has_data');
+						.attr('y', options.padding.top + i*(options.legend.rect_width + options.legend.offset))
+						.attr('height', options.legend.rect_width)
+						.attr('width', options.legend.rect_width)
+						.attr('class', category.class);
 
-					legend.append('text')
-						.attr('x', width + options.margin.right - options.legend.x_right_offset + 20)
-						.attr('y', options.padding.top + options.legend.line_space - options.legend.offset/2)
-						.text(options.legend.has_data_text)
-						.attr('dy', "0.5ex")
-						.attr('class', 'legend');
-
-					legend.append('rect')
-						.attr('x', width + options.margin.right - options.legend.x_right_offset)
-						.attr('y', options.padding.top + options.legend.line_space + options.legend.offset)
-						.attr('height', 15)
-						.attr('width', 15)
-						.attr('class', 'rect_has_no_data');
-
-					legend.append('text')
-						.attr('x', width + options.margin.right - options.legend.x_right_offset + 20)
-						.attr('y', options.padding.top + options.legend.line_space * 2 +  options.legend.offset/2)
-						.text(options.legend.has_no_data_text)
-						.attr('dy', "0.5ex")
-						.attr('class', 'legend');
-
-					
+						legend.append('text')
+							.attr('x', width + options.margin.right - options.legend.x_right_offset + options.legend.rect_width*4/3)
+							.attr('y', options.padding.top + i*(options.legend.rect_width + options.legend.offset) + options.legend.line_space*3/4)
+							.text(category.text)
+							.attr('dy', "0.5ex")
+							.attr('class', 'legend');
+					}
 				}
 				
 
