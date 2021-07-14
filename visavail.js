@@ -1262,7 +1262,7 @@
 								endStr = moment(d.endDate).format(options.tooltip.date_format);
 							}
 
-							if (d.endDate > d3.timeSecond.offset(d.startDate, 86400) && !options.tooltip.only_first_date) {
+							if (startStr != endStr && !options.tooltip.only_first_date) {
 								if (options.date_is_descending) {
 									output += `${endStr} - ${startStr}`;
 								} else {
@@ -1743,6 +1743,14 @@
 			}
 			return chart;
 		};
+
+		chart.setZoom = function(x, y, s) {
+			const width = options.width - options.margin.left - options.margin.right;
+			options.xScale = d3.scaleTime()
+				.domain([startDate, endDate])	
+				.range([0, width])
+			zoomed();
+		}
 
 		chart.createGraph = function(dataset){
 			d3.select('#' + options.id_div_graph)
