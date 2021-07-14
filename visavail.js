@@ -109,6 +109,7 @@
 			},
 			tooltip: {
 				class: 'tooltip',
+				date_format: '',
 				//height of tooltip , correspond to line-height of class tooltip from css
 				height: 11,
 				//position: "top" is a div before bar follow the mouse only left, "overlay" follow the mouse left and height
@@ -1245,58 +1246,33 @@
 									output += ' ' + series.description[i] + ' ';
 								}
 							}
-							
-							if (options.is_date_only_format && !options.tooltip.date_plus_time) {
-								if (d.endDate > d3.timeSecond.offset(d.startDate, 86400) && !options.tooltip.only_first_date) {
-									if (options.date_is_descending) {
-										output += moment(d.endDate).format('l') +
-										' - ' + moment(d.startDate).format('l');
-									} else {
-										output += moment(d.startDate).format('l') +
-										' - ' + moment(d.endDate).format('l');
-									}
-								} else if (options.date_is_descending) {
-									output += moment(d.endDate).format('l');
+
+							let startStr, endStr;
+
+							if (!options.tooltip.date_format) {
+								if (options.tooltip.date_plus_time) {
+									startStr = moment(d.startDate).format('l');
+									endStr = moment(d.endDate).format('l');
 								} else {
-									output += moment(d.startDate).format('l');
+									startStr = `${moment(d.startDate).format('l')} ${moment(d.startDate).format('LTS')}`;
+									endStr = `${moment(d.endDate).format('l')} ${moment(d.endDate).format('LTS')}`;
 								}
 							} else {
-								if (!options.tooltip.only_first_date){
-									if ((d.endDate > d3.timeSecond.offset(d.startDate, 86400) || options.tooltip.date_plus_time)) {
-										if (options.date_is_descending) {
-											output += moment(d.endDate).format('l') + ' ' +
-												moment(d.endDate).format('LTS') + ' - ' +
-												moment(d.startDate).format('l') + ' ' +
-												moment(d.startDate).format('LTS');
-										} else {
-											output += moment(d.startDate).format('l') + ' ' +
-												moment(d.startDate).format('LTS') + ' - ' +
-												moment(d.endDate).format('l') + ' ' +
-												moment(d.endDate).format('LTS');
-										}
-									} else if(options.date_is_descending) {
-										output += moment(d.endDate).format('LTS') + ' - ' +
-										moment(d.startDate).format('LTS');
-									} else {
-										output += moment(d.startDate).format('LTS') + ' - ' +
-											moment(d.endDate).format('LTS');
-									}
-								} else {
-									if (d.endDate > d3.timeSecond.offset(d.startDate, 86400) || options.tooltip.date_plus_time) {
-										if(options.date_is_descending) {
-											output += moment(d.endDate).format('l') + ' ' +
-												moment(d.endDate).format('LTS');
-										} else {
-											output += moment(d.startDate).format('l') + ' ' +
-												moment(d.startDate).format('LTS');
-										}
-									} else if (options.date_is_descending)  {
-										output += moment(d.endDate).format('LTS');
-									} else {
-										output += moment(d.startDate).format('LTS');
-									}
-								}								
+								startStr = moment(d.startDate).format(options.tooltip.date_format);
+								endStr = moment(d.endDate).format(options.tooltip.date_format);
 							}
+
+							if (d.endDate > d3.timeSecond.offset(d.startDate, 86400) && !options.tooltip.only_first_date) {
+								if (options.date_is_descending) {
+									output += `${endStr} - ${startStr}`;
+								} else {
+									output += `${startStr} - ${endStr}`;
+								}
+							} else if (options.date_is_descending) {
+								output += endStr;
+							} else {
+								output += startStr;
+							}	
 
 							if ("tooltip_html" in d) {
 								output += ' ' + d.tooltip_html + ' ';
