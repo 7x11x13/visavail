@@ -467,7 +467,11 @@
 				dataset.forEach(function (d) {
 					d.data.forEach(function (d1) {
 						if (!(d1.startDate instanceof Date)) {
-							if (parseDateTimeRegEx.test(d1.startDate)) {
+							if (Number.isInteger(d1.startDate)) {
+								// d1.startDate is a timestamp
+								d1.startDate = new Date(d1.startDate);
+								options.is_date_only_format = false;
+							} else if (parseDateTimeRegEx.test(d1.startDate)) {
 								// d1.startDate is date with time data
 								d1.startDate = parseDateTime(d1.startDate);
 								options.is_date_only_format = false;
@@ -485,7 +489,11 @@
 								d1.endDate = d3.timeSecond.offset(d1.startDate, d.interval_s);
 							} else {
 								if(d1.endDate){
-									if (parseDateTimeRegEx.test(d1.endDate)) {
+									if (Number.isInteger(d1.endDate)) {
+										// d1.startDate is a timestamp
+										d1.endDate = new Date(d1.endDate);
+										options.is_date_only_format = false;
+									} else if (parseDateTimeRegEx.test(d1.endDate)) {
 										// d1.endDate is date with time data
 										d1.endDate = parseDateTime(d1.endDate);
 									} else if (parseDateRegEx.test(d1.endDate)) {
