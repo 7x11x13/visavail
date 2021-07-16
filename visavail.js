@@ -72,6 +72,7 @@
 			display_date_range: ["",""],
 			//if true reminder to use the correct data format for d3
 			custom_categories: false,
+			categories: {},
 			is_date_only_format: true,
 		
 			date_in_utc: false,
@@ -246,7 +247,7 @@
 
 			Object.keys(custom_options).forEach(function (key) {
 				if(key in default_option){
-					if(typeof(default_option[key]) === 'object' && !Array.isArray(default_option[key])){
+					if(typeof(default_option[key]) === 'object' && !Array.isArray(default_option[key]) && key != 'categories') {
 						//console.log("KEY => ", key, ", DEF_KEY => ", default_option[key],", CUST_KEY => ", custom_options[key])
 						loadConfig(default_option[key], custom_options[key])
 					} else {
@@ -1114,8 +1115,11 @@
 									return series.disp_data.indexOf(d) >= 0;
 								}
 							)[0];
-							if (series && series.categories) {
+							if (series && series.categories && d.state in series.categories) {
 								return series.categories[d.state].class;
+							}
+							if (d.state in options.categories) {
+								return options.categories[d.state].class;
 							}
 						} else {
 							if (d.state === 1) {
@@ -1235,10 +1239,13 @@
 										return series.disp_data.indexOf(d) >= 0;
 									}
 								)[0];
-								if(series && series.categories[d.state].tooltip_html)
-								  	output = series.categories[d.state].tooltip_html;
-								else
+								if (series && series.categories && d.state in series.categories) {
+									output = series.categories[d.state].tooltip_html;
+								} else if (d.state in options.categories) {
+									output = options.categories[d.state].tooltip_html;
+								} else {
 									output = '&nbsp;' + d.state + '&nbsp;';
+								}
 							} else {
 								if (d.state === 1) {
 									// checkmark icon
@@ -1554,9 +1561,11 @@
 											return series.disp_data.indexOf(d) >= 0;
 										}
 									)[0];
-									if (series && series.categories) {
-										//d3.select(this).attr('fill', series.categories[d.state].color);
+									if (series && series.categories && d.state in series.categories) {
 										return series.categories[d.state].class;
+									}
+									if (d.state in options.categories) {
+										return options.categories[d.state].class;
 									}
 								} else {
 									if (d.state === 1) {
@@ -1769,7 +1778,6 @@
 				const seriesData = dataset.find(s => s.measure === series.measure).data;
 				seriesData.push(...series.data);
 			}
-			console.log(dataset);
 			return chart.updateGraph(null, dataset);
 		}
 
