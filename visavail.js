@@ -542,7 +542,7 @@
 							if (d.state === tmpData[tmpData.length - 1].state && d.tooltip_html === tmpData[tmpData.length - 1].tooltip_html) {
 								// the value has not changed since the last date
 								if (options.defined_blocks) {
-									if (tmpData[tmpData.length - 1].endDate.getTime() === d.startDate.getTime()) {
+									if (tmpData[tmpData.length - 1].endDate.getTime() >= d.startDate.getTime()) {
 										// end of old and start of new block are the same
 										tmpData[tmpData.length - 1].endDate = d.endDate;
 									} else {
@@ -582,6 +582,11 @@
 										} else {
 											tmpData[tmpData.length - 1].endDate = d.startDate;
 										}
+									}
+								} else {
+									if (tmpData[tmpData.length - 1].endDate.getTime() > d.startDate.getTime()) {
+										// fix overlapping dates
+										tmpData[tmpData.length - 1].endDate = d.startDate;
 									}
 								}
 								tmpData.push(d);
@@ -1752,20 +1757,33 @@
 			return chart;
 		};
 
-		chart.setZoom = function(x, y, s) {
-			const width = options.width - options.margin.left - options.margin.right;
-			options.xScale = d3.scaleTime()
-				.domain([startDate, endDate])	
-				.range([0, width])
-			zoomed();
-		}
-
 		chart.createGraph = function(dataset){
 			d3.select('#' + options.id_div_graph)
 					.datum(dataset)
 					.call(chart);
 			return chart;
 		};
+
+		chart.appendData = function(newData) {
+			for (const series of newData) {
+				const seriesData = dataset.find(s => s.measure === series.measure).data;
+				seriesData.push(...series.data);
+			}
+			console.log(dataset);
+			return chart.updateGraph(null, dataset);
+		}
+
+		chart.removeOldData = function(minDate) {
+			for (const series of dataset) {
+				while (series.data.length > 0 && series.data[0].endDate <= minDate) {
+					series.data.shift();
+				}
+				if (series.data[0].startDate < minDate) {
+					series.data[0].startDate = minDate;
+				}
+			}
+			return chart.updateGraph(null, dataset);
+		}
 
 		chart.destroy = function(_){
             if(document.getElementById(options.id_div_graph))
