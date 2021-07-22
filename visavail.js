@@ -122,7 +122,8 @@
 				hover_zoom: {
 					enabled: false,
 					ratio: .4,
-				}
+				},
+				date_as_utc: false
 			},
 			legend: {
 				enabled: true,
@@ -460,6 +461,24 @@
 						return new Date(date);
 					};
 				}
+
+				var parseDateInput = function(date) {
+					if (date instanceof Date) return date;
+					if (Number.isInteger(date)) {
+						// d1.startDate is a timestamp
+						return new Date(date);
+					} else if (parseDateTimeRegEx.test(date)) {
+						// d1.startDate is date with time data
+						return parseDateTime(date);
+						
+					} else if (parseDateRegEx.test(date)) {
+						// d1.startDate is date without time data
+						return parseDate(date);
+					} else {
+						throw new Error('Date/time format not recognized. Pick between \'YYYY-MM-DD\' or ' +
+							'\'YYYY-MM-DD HH:MM:SS\'.');
+					}
+				}
 				
 				var parseDateRegEx = new RegExp(/^\d{4}-\d{2}-\d{2}$/);
 				var parseDateTimeRegEx = new RegExp(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
@@ -467,45 +486,13 @@
 				var t0 = performance.now()
 				dataset.forEach(function (d) {
 					d.data.forEach(function (d1) {
-						if (!(d1.startDate instanceof Date)) {
-							if (Number.isInteger(d1.startDate)) {
-								// d1.startDate is a timestamp
-								d1.startDate = new Date(d1.startDate);
-								options.is_date_only_format = false;
-							} else if (parseDateTimeRegEx.test(d1.startDate)) {
-								// d1.startDate is date with time data
-								d1.startDate = parseDateTime(d1.startDate);
-								options.is_date_only_format = false;
-								
-							} else if (parseDateRegEx.test(d1.startDate)) {
-								// d1.startDate is date without time data
-								d1.startDate = parseDate(d1.startDate);
-							} else {
-								throw new Error('Date/time format not recognized. Pick between \'YYYY-MM-DD\' or ' +
-									'\'YYYY-MM-DD HH:MM:SS\'.');
-							}
-						}
+						d1.startDate = parseDateInput(d1.startDate);
 						if (!(d1.endDate instanceof Date)) {
 							if (!options.defined_blocks) {
 								d1.endDate = d3.timeSecond.offset(d1.startDate, d.interval_s);
 							} else {
 								if(d1.endDate){
-									if (Number.isInteger(d1.endDate)) {
-										// d1.startDate is a timestamp
-										d1.endDate = new Date(d1.endDate);
-										options.is_date_only_format = false;
-									} else if (parseDateTimeRegEx.test(d1.endDate)) {
-										// d1.endDate is date with time data
-										d1.endDate = parseDateTime(d1.endDate);
-									} else if (parseDateRegEx.test(d1.endDate)) {
-										// d1.endDate is date without time data
-										d1.endDate = parseDate(d1.endDate);
-									} else {
-										d1.endDate = d1.startDate;
-										if(options.graph.type != "rhombus")
-											console.error('Date/time format not recognized. Pick between \'YYYY-MM-DD\' or ' +
-											'\'YYYY-MM-DD HH:MM:SS\'.');
-									}
+									d1.endDate = parseDateInput(d1.endDate);
 								} else
 									throw new Error('Defined block true but dataset not correct');
 							}
@@ -605,14 +592,7 @@
 				if(options.display_date_range && (options.display_date_range[0] || options.display_date_range[1])){
 					if(options.display_date_range[0]){
 						if (!(options.display_date_range[0] instanceof Date)) {
-							if (parseDateRegEx.test(options.display_date_range[0])) {
-								options.display_date_range[0] = parseDate(options.display_date_range[0]);
-							} else if (parseDateTimeRegEx.test(options.display_date_range[0])) {
-								options.display_date_range[0] = parseDateTime(options.display_date_range[0]);
-							} else {
-								throw new Error('Option of Display range Date/time format not recognized. Pick between \'YYYY-MM-DD\' or ' +
-									'\'YYYY-MM-DD HH:MM:SS\'.');
-							}
+							options.display_date_range[0] = parseDateInput(options.display_date_range[0]);
 							startDate = options.display_date_range[0];
 						} else {
 							if(options.date_in_utc)
@@ -623,14 +603,7 @@
 					}
 					if(options.display_date_range[1]){
 						if (!(options.display_date_range[1] instanceof Date)) {
-							if (parseDateRegEx.test(options.display_date_range[1])) {
-								options.display_date_range[1] = parseDate(options.display_date_range[1]);
-							} else if (parseDateTimeRegEx.test(options.display_date_range[1])) {
-								options.display_date_range[1] = parseDateTime(options.display_date_range[1]);
-							} else {
-								throw new Error('Option of Display range Date/time format not recognized. Pick between \'YYYY-MM-DD\' or ' +
-									'\'YYYY-MM-DD HH:MM:SS\'.');
-							}
+							options.display_date_range[1] = parseDateInput(options.display_date_range[1]);
 							endDate = options.display_date_range[1];
 						} else {
 							if(options.date_in_utc)
@@ -1278,8 +1251,13 @@
 									endStr = `${moment(d.endDate).format('l')} ${moment(d.endDate).format('LTS')}`;
 								}
 							} else {
-								startStr = moment(d.startDate).format(options.tooltip.date_format);
-								endStr = moment(d.endDate).format(options.tooltip.date_format);
+								if (options.tooltip.date_as_utc) {
+									startStr = moment.utc(d.startDate).format(options.tooltip.date_format);
+									endStr = moment.utc(d.endDate).format(options.tooltip.date_format);
+								} else {
+									startStr = moment(d.startDate).format(options.tooltip.date_format);
+									endStr = moment(d.endDate).format(options.tooltip.date_format);
+								}
 							}
 
 							if (startStr != endStr && !options.tooltip.only_first_date) {
