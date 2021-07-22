@@ -289,6 +289,14 @@
 			"shortMonths": moment.monthsShort()
 		};
 
+		if (options.legend.enabled) {
+			// allow user to show/hide categories
+			var categoryVisible = {};
+			for (const category of options.legend.categories) {
+				categoryVisible[category.class] = true;
+			}
+		}
+
 		if (!options.custom_time_format){
 			options.custom_time_format = {
 				format_millisecond : convertMomentToStrftime("SSS"),
@@ -1090,8 +1098,7 @@
 							)[0];
 							if (series && series.categories && d.state in series.categories) {
 								return series.categories[d.state].class;
-							}
-							if (d.state in options.categories) {
+							} else if (d.state in options.categories) {
 								return options.categories[d.state].class;
 							}
 						} else {
@@ -1105,15 +1112,18 @@
 						}
 					})
 					.on('mouseover', function (d, i) {
+						if (options.legend.enabled && !categoryVisible[d3.select(this).attr("class")]) return;
 						redrawTooltipWhenOver(this, dataset, d3.event.layerX, d3.event.layerY, d, i);
 					})
 					.on('mouseout', function () {
 						redrawTooltipWhenOut(this)
 					})
 					.on('click', function(d,i){
+						if (options.legend.enabled && !categoryVisible[d3.select(this).attr("class")]) return;
 						options.onClickBlock.call(this, d,i);
 					})
 					.on("mousemove", function(){
+						if (options.legend.enabled && !categoryVisible[d3.select(this).attr("class")]) return;
 						redrawTooltipWhenMoved(d3.event.layerX, d3.event.layerY, this)
 					})
 	
@@ -1403,6 +1413,7 @@
 				}
 				// create legend
 				if (options.legend.enabled) {
+					console.log(categoryVisible);
 					var legend = svg.select('#g_title')
 							.append('g')
 							.attr('id', 'g_legend')
@@ -1414,7 +1425,14 @@
 						.attr('y', options.padding.top + i*(options.legend.rect_width + options.legend.offset))
 						.attr('height', options.legend.rect_width)
 						.attr('width', options.legend.rect_width)
-						.attr('class', category.class);
+						.attr('class', category.class)
+						.on('click', function() {
+							const category_class = d3.select(this).attr('class');
+							const opacity = (categoryVisible[category_class]) ? 0.3 : 1;
+							categoryVisible[category_class] = !categoryVisible[category_class];
+							d3.selectAll(`.${category_class}`)
+								.style('opacity', opacity);
+						});
 
 						legend.append('text')
 							.attr('x', width + options.margin.right - options.legend.x_right_offset + options.legend.rect_width*4/3)
@@ -1576,6 +1594,16 @@
 							.call(options.zoomed.transform, 
 								d3.zoomIdentity.scale((width) / (s[1] - s[0])).translate(-s[0], 0)
 								);
+					}
+				}
+
+				// hide/show categories
+				if (options.legend.enabled) {
+					for (const category of options.legend.categories) {
+						const category_class = category.class;
+						const opacity = (categoryVisible[category_class]) ? 1 : 0.3;
+						d3.selectAll(`.${category_class}`)
+							.style('opacity', opacity);
 					}
 				}
 				
