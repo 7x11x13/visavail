@@ -29,6 +29,28 @@
 			throw new Error('Require D3.js before visavail script');
 		if(!moment)
 			throw new Error('Require moment before visavail script');
+
+		var convertDataset = function(ds) {
+			if (ds.constructor === Object) {
+				const new_dataset = [];
+				Object.keys(ds).forEach(function(measure) {
+					new_dataset.push(
+						{
+							measure: measure,
+							data: ds[measure]
+						}
+					)
+				});
+				return new_dataset;
+			}
+			if (Array.isArray(ds)) {
+				return ds;
+			}
+			throw new Error("Dataset must be array or object");
+		}
+
+		dataset = convertDataset(dataset);
+
 		var options = {
 			id: "",
 			id_div_container: "visavail_container",
@@ -1780,6 +1802,7 @@
 		};
 
 		chart.appendData = function(newData) {
+			newData = convertDataset(newData);
 			for (const series of newData) {
 				const seriesData = dataset.find(s => s.measure === series.measure).data;
 				seriesData.push(...series.data);
